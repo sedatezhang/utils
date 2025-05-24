@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>综合演示页面</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* 弹幕样式 */
+        .barrage-text {
+            position: absolute;
+            right: 100%;
+            animation: moveLeftToRight 15s linear infinite, rainbowColor 5s linear infinite;
+            opacity: 0.9;
+            font-size: 24px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+        }
+
+        @keyframes moveLeftToRight {
+            from {
+                transform: translateX(-100%);
+            }
+            to {
+                transform: translateX(100vw);
+            }
+        }
+
+        @keyframes rainbowColor {
+            0% { color: red; }
+            16% { color: orange; }
+            33% { color: yellow; }
+            50% { color: green; }
+            66% { color: blue; }
+            83% { color: indigo; }
+            100% { color: violet; }
+        }
+
+        /* 心形弹幕样式 */
+        .heart-barrage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .barrage-item {
+            position: absolute;
+            color: #fff;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            user-select: none;
+            pointer-events: none;
+            opacity: 0.8;
+            white-space: nowrap;
+            animation: move 5s linear forwards;
+        }
+
+        @keyframes move {
+            to {
+                opacity: 0;
+                transform: translateY(-100px);
+            }
+        }
+
+        /* 画布样式 */
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: #fff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 输入框样式 */
+        .input-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        #barrageInput {
+            padding: 8px 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #sendBtn {
+            padding: 8px 16px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #sendBtn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 弹幕容器 -->
+        <div class="barrage-container" id="barrageContainer"></div>
+        
+        <!-- 心形弹幕容器 -->
+        <div class="heart-barrage" id="heartBarrage"></div>
+
+        <!-- 画布用于绘制心形 -->
+        <canvas id="heartCanvas"></canvas>
+
+        <!-- 弹幕输入框 -->
+        <div class="input-container">
+            <input type="text" id="barrageInput" placeholder="输入弹幕内容...">
+            <button id="sendBtn">发送</button>
+        </div>
+    </div>
+
+    <script>
+        // 弹幕功能相关变量
+        const barrageContainer = document.getElementById('barrageContainer');
+        const sendBtn = document.getElementById('sendBtn');
+        const barrageInput = document.getElementById('barrageInput');
+        
+        // 定义可用的轨道位置
+        const trackPositions = ['15%', '30%', '45%', '60%', '75%'];
+        // 跟踪当前正在使用的轨道
+        let usedTracks = [];
+        
+        // 清理已移除的轨道
+        function cleanUsedTracks() {
+            usedTracks = usedTracks.filter(track => {
+                return document.querySelector(`[data-track="${track}"]`) !== null;
+            });
+        }
+        
+        // 获取一个不冲突的轨道位置
+        function getAvailableTrack() {
+            // 每次都先清理已消失的弹幕占用的轨道
+            cleanUsedTracks();
+            
+            // 尝试最多10次找到一个未使用的轨道
+            for (let i = 0; i < 10; i++) {
+                const randomIndex = Math.floor(Math.random() * trackPositions.length);
+                const track = trackPositions[randomIndex];
+                
+                if (!usedTracks.includes(track)) {
+                    usedTracks.push(track);
+                    return track;
+                }
+            }
+            
+            // 如果没有找到可用轨道，就随机选择一个已有轨道
+            return trackPositions[Math.floor(Math.random() * trackPositions.length)];
+        }
+        
+        // 创建新的弹幕元素
+        function createBarrage(text) {
+            const div = document.createElement('div');
+            div.className = 'barrage-text';
+            div.dataset.track = getAvailableTrack(); // 记录使用的轨道
+            div.style.top = div.dataset.track;
+            div.textContent = text;
+            
+            // 随机动画延迟
+            const delay = Math.random() * 5;
+            div.style.animationDelay = delay + 's, ' + (Math.random() * 5) + 's'; // 为颜色动画添加随机延迟
+            
+            barrageContainer.appendChild(div);
+            
+            // 动画结束后移除元素以避免内存泄漏
+            div.addEventListener('animationend', () => {
+                // 从usedTracks中移除该轨道
+                usedTracks = usedTracks.filter(track => track !== div.dataset.track);
+                div.remove();
+            });
+        }
+        
+        // 发送弹幕事件处理
+        function sendBarrage() {
+            const text = barrageInput.value.trim();
+            if (text) {
+                createBarrage(text);
+                barrageInput.value = '';
+            }
+        }
+        
+        // 回车键发送
+        barrageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendBarrage();
+            }
+        });
+        
+        // 心形弹幕相关函数
+        // 心形函数
+        function heartFunction(t) {
+            return [
+                16 * Math.pow(Math.sin(t), 3),
+                -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))
+            ];
+        }
+        
+        // 心形参数配置
+        const heartConfig = {
+            scale: 10,
+            offsetX: 150,
+            offsetY: 150,
+            animationScale: 1.2
+        };
+        
+        // 创建心形弹幕元素
+        function createHeartBarrageItem(text, t) {
+            const div = document.createElement('div');
+            div.className = 'barrage-item';
+            div.innerText = text;
+            
+            // 设置样式
+            div.style.cssText = `
+                position: absolute;
+                color: #fff;
+                font-size: 14px;
+                font-family: Arial, sans-serif;
+                user-select: none;
+                pointer-events: none;
+                opacity: 0.8;
+                white-space: nowrap;
+                animation: move ${Math.random() * 5 + 3}s linear forwards;
+            `;
+            
+            // 计算心形坐标
+            const [x, y] = heartFunction(t);
+            
+            // 应用心形配置
+            div.style.left = `${x * heartConfig.scale + heartConfig.offsetX}px`;
+            div.style.top = `${y * heartConfig.scale + heartConfig.offsetY}px`;
+            
+            // 随机字体大小和颜色
+            div.style.fontSize = `${Math.random() * 10 + 12}px`;
+            div.style.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+            
+            // 添加到容器
+            heartBarrage.appendChild(div);
+            
+            // 动画结束后移除元素
+            setTimeout(() => {
+                div.remove();
+            }, (Math.random() * 5000 + 3000));
+        }
+        
+        // 生成心形弹幕
+        function generateHeartBarrage() {
+            const texts = ['❤', '爱', '永远', '在一起', '我爱你', '相伴', '幸福', '快乐', '永恒'];
+            
+            for(let i = 0; i < 30; i++) {
+                const t = Math.random() * 2 * Math.PI;
+                
+                // 随机选择一个文本内容
+                const text = texts[Math.floor(Math.random() * texts.length)];
+                
+                // 创建弹幕
+                createHeartBarrageItem(text, t);
+            }
+        }
+        
+        // 画布相关函数
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 设置画布尺寸
+        function resizeCanvas() {
+            canvas.width = window.innerWidth * 0.8;
+            canvas.height = window.innerHeight * 0.8;
+        }
+        
+        // 绘制心形
+        function drawHeart() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 计算缩放比例和中心点
+            const scale = Math.min(canvas.width, canvas.height) / 40;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // 开始绘制路径
+            ctx.beginPath();
+            
+            // 设置绘制样式
+            ctx.fillStyle = '#ff3399';
+            ctx.strokeStyle = '#cc0066';
+            ctx.lineWidth = 2;
+            
+            // 生成心形路径
+            for (let i = 0; i <= 100; i++) {
+                const t = i * 2 * Math.PI / 100;
+                const [x, y] = heartFunction(t);
+                
+                if (i === 0) {
+                    ctx.moveTo(centerX + x * scale, centerY - y * scale);
+                } else {
+                    ctx.lineTo(centerX + x * scale, centerY - y * scale);
+                }
+            }
+            
+            // 填充并描边心形
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+        
+        // 初始化
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            drawHeart();
+        });
+        
+        // 事件绑定
+        sendBtn.addEventListener('click', sendBarrage);
+        
+        // 初始执行
+        // 修改初始化代码，移除与画布相关的调用
+        
+        // 初始生成示例弹幕
+        window.addEventListener('load', () => {
+            const initBarrages = [
+                '欢迎来到综合演示页面！',
+                '这是一个同时展示弹幕和心形图案的页面',
+                '你可以输入自己的内容发送弹幕',
+                '页面同时展示了普通弹幕和心形弹幕效果'
+            ];
+            
+            initBarrages.forEach((msg, index) => {
+                setTimeout(() => {
+                    createBarrage(msg);
+                }, index * 2000);
+            });
+            
+            // 启动心形弹幕
+            setInterval(generateHeartBarrage, 1000);
+            generateHeartBarrage();
+        });
+    </script>
+</body>
+</html>

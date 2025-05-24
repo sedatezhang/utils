@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弹幕心形</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        .barrage-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .heart-barrage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+<div class="barrage-container">
+    <div class="heart-barrage" id="heartBarrage"></div>
+</div>
+
+<script>
+    const heartBarrage = document.getElementById('heartBarrage');
+    
+    // 心形函数
+    function heartFunction(t) {
+        return [
+            16 * Math.pow(Math.sin(t), 3),
+            // -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))
+            13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)
+
+        ];
+    }
+    
+    // 创建弹幕元素
+    function createBarrage(text, x, y) {
+        const div = document.createElement('div');
+        div.className = 'barrage-item';
+        div.innerText = text;
+        div.style.cssText = `
+            position: absolute;
+            color: #fff;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            user-select: none;
+            pointer-events: none;
+            opacity: 0.8;
+            white-space: nowrap;
+            animation: move ${Math.random() * 5 + 3}s linear forwards;
+        `;
+        
+        // 设置弹幕初始位置
+        div.style.left = `${x}px`;
+        div.style.top = `${y}px`;
+        
+        // 随机字体大小和颜色
+        div.style.fontSize = `${Math.random() * 10 + 12}px`;
+        div.style.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+        
+        // 添加到容器
+        heartBarrage.appendChild(div);
+        
+        // 动画结束后移除元素
+        setTimeout(() => {
+            div.remove();
+        }, (Math.random() * 5000 + 3000));
+    }
+    
+    // 生成心形弹幕
+    function generateHeartBarrage() {
+        const texts = ['❤', '爱', '永远', '在一起', '我爱你', '相伴', '幸福', '快乐', '永恒'];
+        
+        for(let i = 0; i < 30; i++) {
+            const t = Math.random() * 2 * Math.PI;
+            const [x, y] = heartFunction(t);
+            
+            // 将坐标转换为适合屏幕显示的范围
+            const screenX = (x * 10) + 150;
+            const screenY = (-y * 10) + 150;
+            
+            // 随机选择一个文本内容
+            const text = texts[Math.floor(Math.random() * texts.length)];
+            
+            // 创建弹幕
+            createBarrage(text, screenX, screenY);
+        }
+    }
+    
+    // 每隔一段时间生成新的心形弹幕
+    setInterval(generateHeartBarrage, 1000);
+    
+    // 初始生成一次
+    generateHeartBarrage();
+</script>
+</body>
+</html>

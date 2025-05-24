@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弹幕效果</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        .barrage-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .barrage-text {
+            position: absolute;
+            right: 100%;
+            animation: moveLeftToRight 15s linear infinite, rainbowColor 5s linear infinite;
+            opacity: 0.9;
+            font-size: 24px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes moveLeftToRight {
+            from {
+                transform: translateX(-100%);
+            }
+            to {
+                transform: translateX(100vw);
+            }
+        }
+
+        @keyframes rainbowColor {
+            0% { color: red; }
+            16% { color: orange; }
+            33% { color: yellow; }
+            50% { color: green; }
+            66% { color: blue; }
+            83% { color: indigo; }
+            100% { color: violet; }
+        }
+
+        /* 弹幕输入框样式 */
+        .input-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        #barrageInput {
+            padding: 8px 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #sendBtn {
+            padding: 8px 16px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #sendBtn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="barrage-container" id="barrageContainer">
+        <!-- 弹幕将通过JavaScript动态添加到这里 -->
+    </div>
+
+    <div class="input-container">
+        <input type="text" id="barrageInput" placeholder="输入弹幕内容...">
+        <button id="sendBtn">发送</button>
+    </div>
+
+    <script>
+        const container = document.getElementById('barrageContainer');
+        const sendBtn = document.getElementById('sendBtn');
+        const barrageInput = document.getElementById('barrageInput');
+        
+        // 定义可用的轨道位置
+        const trackPositions = ['15%', '30%', '45%', '60%', '75%'];
+        // 跟踪当前正在使用的轨道
+        let usedTracks = [];
+        
+        // 清理已移除的轨道
+        function cleanUsedTracks() {
+            usedTracks = usedTracks.filter(track => {
+                return document.querySelector(`[data-track=\"${track}\"]`) !== null;
+            });
+        }
+        
+        // 获取一个不冲突的轨道位置
+        function getAvailableTrack() {
+            // 每次都先清理已消失的弹幕占用的轨道
+            cleanUsedTracks();
+            
+            // 尝试最多10次找到一个未使用的轨道
+            for (let i = 0; i < 10; i++) {
+                const randomIndex = Math.floor(Math.random() * trackPositions.length);
+                const track = trackPositions[randomIndex];
+                
+                if (!usedTracks.includes(track)) {
+                    usedTracks.push(track);
+                    return track;
+                }
+            }
+            
+            // 如果没有找到可用轨道，就随机选择一个已有轨道（防止无法显示）
+            return trackPositions[Math.floor(Math.random() * trackPositions.length)];
+        }
+        
+        // 创建新的弹幕元素
+        function createBarrage(text) {
+            const div = document.createElement('div');
+            div.className = 'barrage-text';
+            div.dataset.track = getAvailableTrack(); // 记录使用的轨道
+            div.style.top = div.dataset.track;
+            div.textContent = text;
+            
+            // 随机动画延迟
+            const delay = Math.random() * 5;
+            div.style.animationDelay = delay + 's, ' + (Math.random() * 5) + 's'; // 为颜色动画添加随机延迟
+            
+            container.appendChild(div);
+            
+            // 动画结束后移除元素以避免内存泄漏
+            div.addEventListener('animationend', () => {
+                // 从usedTracks中移除该轨道
+                usedTracks = usedTracks.filter(track => track !== div.dataset.track);
+                div.remove();
+            });
+        }
+        
+        // 发送弹幕事件处理
+        function sendBarrage() {
+            const text = barrageInput.value.trim();
+            if (text) {
+                createBarrage(text);
+                barrageInput.value = '';
+            }
+        }
+        
+        // 回车键发送
+        barrageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendBarrage();
+            }
+        });
+        
+        // 初始化一些示例弹幕
+        window.addEventListener('load', () => {
+            const initBarrages = [
+                '欢迎来到弹幕页面！',
+                '这是一个滚动的弹幕效果',
+                '你可以输入自己的内容发送弹幕',
+                '你可以输入自己的内容发送弹幕',
+                '你可以输入自己的内容发送弹幕',
+                '你可以输入自己的内容发送弹幕',
+                '你可以输入自己的内容发送弹幕',
+                '你可以输入自己的内容发送弹幕',
+                '你可以输入自己的内容发送弹幕',
+                '你可以输入自己的内容发送弹幕',
+                '你可以输入自己的内容发送弹幕',
+                '弹幕效果已优化升级'
+            ];
+            initBarrages.forEach((msg, index) => {
+                setTimeout(() => {
+                    createBarrage(msg);
+                }, index * 2000);
+            });
+        });
+    </script>
+</body>
+</html>
